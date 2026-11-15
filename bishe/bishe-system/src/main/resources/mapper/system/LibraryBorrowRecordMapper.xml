@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.LibraryBorrowRecordMapper">
+
+    <resultMap type="LibraryBorrowRecord" id="LibraryBorrowRecordResult">
+        <id property="recordId" column="record_id"/>
+        <result property="borrowNo" column="borrow_no"/>
+        <result property="bookId" column="book_id"/>
+        <result property="readerId" column="reader_id"/>
+        <result property="borrowDate" column="borrow_date"/>
+        <result property="dueDate" column="due_date"/>
+        <result property="returnDate" column="return_date"/>
+        <result property="lastReminderTime" column="last_reminder_time"/>
+        <result property="renewCount" column="renew_count"/>
+        <result property="reminderCount" column="reminder_count"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <result property="bookName" column="book_name"/>
+        <result property="isbn" column="isbn"/>
+        <result property="cover" column="cover"/>
+        <result property="author" column="author"/>
+        <result property="readerNo" column="reader_no"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="userName" column="user_name"/>
+        <result property="overdueDays" column="overdue_days"/>
+        <result property="fineAmount" column="fine_amount"/>
+    </resultMap>
+
+    <sql id="overdueDaysExpr">
+        case
+            when ifnull(r.return_date, sysdate()) &gt; r.due_date
+                then timestampdiff(day, r.due_date, ifnull(r.return_date, sysdate()))
+            else 0
+        end
+    </sql>
+
+    <sql id="selectLibraryBorrowRecordVo">
+        select r.record_id, r.borrow_no, r.book_id, r.reader_id, r.borrow_date, r.due_date, r.return_date,
+               r.last_reminder_time, r.renew_count, r.reminder_count, r.status, r.create_by, r.create_time,
+               r.update_by, r.update_time, r.remark, b.book_name, b.isbn, b.cover, b.author, lr.reader_no,
+               u.nick_name, u.user_name,
+               <include refid="overdueDaysExpr"/> as overdue_days,
+               round((<include refid="overdueDaysExpr"/>) * 0.50, 2) as fine_amount
+        from lib_borrow_record r
+        left join lib_book b on r.book_id = b.book_id
+        left join lib_reader lr on r.reader_id = lr.reader_id
+        left join sys_user u on lr.user_id = u.user_id
+    </sql>
+
+    <select id="selectLibraryBorrowRecordList" parameterType="LibraryBorrowRecord" resultMap="LibraryBorrowRecordResult">
+        <include refid="selectLibraryBorrowRecordVo"/>
+        <where>
+            u.del_flag = '0'
+            <if test="borrowNo != null and borrowNo != ''">and r.borrow_no like concat('%', #{borrowNo}, '%')</if>
+            <if test="bookId != null">and r.book_id = #{bookId}</if>
+            <if test="readerId != null">and r.reader_id = #{readerId}</if>
+            <if test="bookName != null and bookName != ''">and b.book_name like concat('%', #{bookName}, '%')</if>
+            <if test="nickName != null and nickName != ''">and u.nick_name like concat('%', #{nickName}, '%')</if>
+            <if test="readerNo != null and readerNo != ''">and lr.reader_no like concat('%', #{readerNo}, '%')</if>
+            <if test="status != null and status != ''">and r.status = #{status}</if>
+        </where>
+        order by r.record_id desc
+    </select>
+
+    <select id="selectMyBorrowRecordList" parameterType="Long" resultMap="LibraryBorrowRecordResult">
+        <include refid="selectLibraryBorrowRecordVo"/>
+        where u.user_id = #{userId} and u.del_flag = '0'
+        order by r.record_id desc
+    </select>
+
+    <select id="selectLibraryBorrowRecordById" parameterType="Long" resultMap="LibraryBorrowRecordResult">
+        <include refid="selectLibraryBorrowRecordVo"/>
+        where r.record_id = #{recordId}
+    </select>
+
+    <insert id="insertLibraryBorrowRecord" parameterType="LibraryBorrowRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into lib_borrow_record (
+            borrow_no, book_id, reader_id, borrow_date, due_date, return_date,
+            renew_count, reminder_count, status, create_by, create_time, remark
+        ) values (
+            #{borrowNo}, #{bookId}, #{readerId}, #{borrowDate}, #{dueDate}, #{returnDate},
+            #{renewCount}, 0, #{status}, #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateLibraryBorrowRecord" parameterType="LibraryBorrowRecord">
+        update lib_borrow_record
+        <set>
+            <if test="dueDate != null">due_date = #{dueDate},</if>
+            <if test="renewCount != null">renew_count = #{renewCount},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="returnDate != null">return_date = #{returnDate},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </set>
+        where record_id = #{recordId}
+    </update>
+
+    <update id="returnLibraryBorrowRecord" parameterType="LibraryBorrowRecord">
+        update lib_borrow_record
+        set status = '1',
+            return_date = #{returnDate},
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where record_id = #{recordId} and status in ('0', '2')
+    </update>
+
+    <update id="renewLibraryBorrowRecord" parameterType="LibraryBorrowRecord">
+        update lib_borrow_record
+        set due_date = #{dueDate},
+            renew_count = #{renewCount},
+            status = #{status},
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where record_id = #{recordId} and status in ('0', '2')
+    </update>
+
+    <update id="remindLibraryBorrowRecord" parameterType="LibraryBorrowRecord">
+        update lib_borrow_record
+        set reminder_count = ifnull(reminder_count, 0) + 1,
+            last_reminder_time = #{lastReminderTime},
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where record_id = #{recordId} and status = '2'
+    </update>
+
+    <delete id="deleteLibraryBorrowRecordByIds" parameterType="Long">
+        delete from lib_borrow_record
+        where record_id in
+        <foreach collection="array" item="recordId" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </delete>
+
+    <select id="countActiveBorrowByReaderId" parameterType="Long" resultType="int">
+        select count(1)
+        from lib_borrow_record
+        where reader_id = #{readerId} and status in ('0', '2')
+    </select>
+
+    <select id="countActiveBorrowByReaderAndBook" resultType="int">
+        select count(1)
+        from lib_borrow_record
+        where reader_id = #{readerId} and book_id = #{bookId} and status in ('0', '2')
+    </select>
+
+    <select id="countActiveBorrowByReaderIds" parameterType="Long" resultType="int">
+        select count(1)
+        from lib_borrow_record
+        where reader_id in
+        <foreach collection="array" item="readerId" open="(" separator="," close=")">
+            #{readerId}
+        </foreach>
+        and status in ('0', '2')
+    </select>
+
+    <select id="countActiveBorrowByBookIds" parameterType="Long" resultType="int">
+        select count(1)
+        from lib_borrow_record
+        where book_id in
+        <foreach collection="array" item="bookId" open="(" separator="," close=")">
+            #{bookId}
+        </foreach>
+        and status in ('0', '2')
+    </select>
+
+    <update id="updateOverdueBorrowRecordStatus">
+        update lib_borrow_record
+        set status = '2',
+            update_time = sysdate()
+        where status = '0' and due_date &lt; sysdate()
+    </update>
+
+    <select id="selectMyBorrowSummary" parameterType="Long" resultType="java.util.HashMap">
+        select
+            count(1) as totalCount,
+            sum(case when r.status = '0' then 1 else 0 end) as borrowingCount,
+            sum(case when r.status = '1' then 1 else 0 end) as returnedCount,
+            sum(case when r.status = '2' then 1 else 0 end) as overdueCount,
+            sum(round((case
+                when ifnull(r.return_date, sysdate()) &gt; r.due_date
+                    then timestampdiff(day, r.due_date, ifnull(r.return_date, sysdate()))
+                else 0
+            end) * 0.50, 2)) as pendingFineAmount
+        from lib_borrow_record r
+        left join lib_reader lr on r.reader_id = lr.reader_id
+        left join sys_user u on lr.user_id = u.user_id
+        where u.user_id = #{userId} and u.del_flag = '0'
+    </select>
+</mapper>

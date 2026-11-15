@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.LibraryBookMapper">
+
+    <resultMap type="LibraryBook" id="LibraryBookResult">
+        <id property="bookId" column="book_id"/>
+        <result property="isbn" column="isbn"/>
+        <result property="bookName" column="book_name"/>
+        <result property="author" column="author"/>
+        <result property="publisher" column="publisher"/>
+        <result property="category" column="category"/>
+        <result property="cover" column="cover"/>
+        <result property="publishDate" column="publish_date"/>
+        <result property="price" column="price"/>
+        <result property="totalStock" column="total_stock"/>
+        <result property="availableStock" column="available_stock"/>
+        <result property="borrowCount" column="borrow_count"/>
+        <result property="location" column="location"/>
+        <result property="status" column="status"/>
+        <result property="description" column="description"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectLibraryBookVo">
+        select book_id, isbn, book_name, author, publisher, category, cover, publish_date, price,
+               total_stock, available_stock, borrow_count, location, status, description, del_flag,
+               create_by, create_time, update_by, update_time, remark
+        from lib_book
+    </sql>
+
+    <select id="selectLibraryBookList" parameterType="LibraryBook" resultMap="LibraryBookResult">
+        <include refid="selectLibraryBookVo"/>
+        <where>
+            del_flag = '0'
+            <if test="isbn != null and isbn != ''">and isbn like concat('%', #{isbn}, '%')</if>
+            <if test="bookName != null and bookName != ''">and book_name like concat('%', #{bookName}, '%')</if>
+            <if test="author != null and author != ''">and author like concat('%', #{author}, '%')</if>
+            <if test="category != null and category != ''">and category like concat('%', #{category}, '%')</if>
+            <if test="status != null and status != ''">and status = #{status}</if>
+        </where>
+        order by book_id desc
+    </select>
+
+    <select id="selectPortalBookList" parameterType="LibraryBook" resultMap="LibraryBookResult">
+        <include refid="selectLibraryBookVo"/>
+        <where>
+            del_flag = '0' and status = '0' and available_stock &gt; 0
+            <if test="bookName != null and bookName != ''">and book_name like concat('%', #{bookName}, '%')</if>
+            <if test="author != null and author != ''">and author like concat('%', #{author}, '%')</if>
+            <if test="category != null and category != ''">and category like concat('%', #{category}, '%')</if>
+        </where>
+        order by available_stock desc, book_id desc
+    </select>
+
+    <select id="selectLibraryBookById" parameterType="Long" resultMap="LibraryBookResult">
+        <include refid="selectLibraryBookVo"/>
+        where book_id = #{bookId}
+    </select>
+
+    <select id="selectLibraryBookByIsbn" parameterType="String" resultMap="LibraryBookResult">
+        <include refid="selectLibraryBookVo"/>
+        where isbn = #{isbn} and del_flag = '0'
+        limit 1
+    </select>
+
+    <insert id="insertLibraryBook" parameterType="LibraryBook" useGeneratedKeys="true" keyProperty="bookId">
+        insert into lib_book (
+            isbn, book_name, author, publisher, category, cover, publish_date, price,
+            total_stock, available_stock, borrow_count, location, status, description,
+            del_flag, create_by, create_time, remark
+        ) values (
+            #{isbn}, #{bookName}, #{author}, #{publisher}, #{category}, #{cover}, #{publishDate}, #{price},
+            #{totalStock}, #{availableStock}, #{borrowCount}, #{location}, #{status}, #{description},
+            '0', #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateLibraryBook" parameterType="LibraryBook">
+        update lib_book
+        <set>
+            <if test="isbn != null and isbn != ''">isbn = #{isbn},</if>
+            <if test="bookName != null and bookName != ''">book_name = #{bookName},</if>
+            <if test="author != null and author != ''">author = #{author},</if>
+            <if test="publisher != null">publisher = #{publisher},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="cover != null">cover = #{cover},</if>
+            <if test="publishDate != null">publish_date = #{publishDate},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="totalStock != null">total_stock = #{totalStock},</if>
+            <if test="availableStock != null">available_stock = #{availableStock},</if>
+            <if test="location != null">location = #{location},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </set>
+        where book_id = #{bookId}
+    </update>
+
+    <update id="deleteLibraryBookByIds" parameterType="Long">
+        update lib_book
+        set del_flag = '2'
+        where book_id in
+        <foreach collection="array" item="bookId" open="(" separator="," close=")">
+            #{bookId}
+        </foreach>
+    </update>
+
+    <update id="increaseBorrowStats" parameterType="Long">
+        update lib_book
+        set borrow_count = ifnull(borrow_count, 0) + 1
+        where book_id = #{bookId}
+    </update>
+
+    <update id="increaseAvailableStock" parameterType="Long">
+        update lib_book
+        set available_stock = available_stock + 1
+        where book_id = #{bookId} and available_stock &lt; total_stock
+    </update>
+
+    <update id="decreaseAvailableStock" parameterType="Long">
+        update lib_book
+        set available_stock = available_stock - 1
+        where book_id = #{bookId} and status = '0' and del_flag = '0' and available_stock &gt; 0
+    </update>
+</mapper>

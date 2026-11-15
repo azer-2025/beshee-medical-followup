@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.HealthArchiveMapper">
+    
+    <resultMap type="HealthArchive" id="HealthArchiveResult">
+        <id     property="archiveId"      column="archive_id"      />
+        <result property="userId"         column="user_id"         />
+        <result property="basicInfo"      column="basic_info"      />
+        <result property="medicalHistory" column="medical_history" />
+        <result property="allergyHistory" column="allergy_history" />
+        <result property="diseaseType"    column="disease_type"    />
+        <result property="ageStage"       column="age_stage"       />
+        <result property="riskLevel"      column="risk_level"      />
+        <result property="archiveTags"    column="archive_tags"    />
+        <result property="diagnosisRecord" column="diagnosis_record" />
+        <result property="examReport"     column="exam_report"     />
+        <result property="trainingPlan"   column="training_plan"   />
+        <result property="medicationAdvice" column="medication_advice" />
+        <result property="createBy"       column="create_by"       />
+        <result property="createTime"     column="create_time"     />
+        <result property="updateBy"       column="update_by"       />
+        <result property="updateTime"     column="update_time"     />
+        <result property="remark"         column="remark"          />
+        <result property="patientName"    column="patient_name"    />
+    </resultMap>
+
+    <sql id="selectHealthArchiveVo">
+        select ha.archive_id, ha.user_id, ha.basic_info, ha.medical_history, ha.allergy_history,
+        ha.disease_type, ha.age_stage, ha.risk_level, ha.archive_tags, ha.diagnosis_record, ha.exam_report,
+        ha.training_plan, ha.medication_advice, ha.create_by, ha.create_time, ha.update_by, ha.update_time,
+        ha.remark, u.nick_name as patient_name
+        from health_archive ha
+        left join sys_user u on ha.user_id = u.user_id
+    </sql>
+
+    <select id="selectHealthArchiveList" parameterType="HealthArchive" resultMap="HealthArchiveResult">
+        <include refid="selectHealthArchiveVo"/>
+        <where>  
+            <if test="userId != null "> and ha.user_id = #{userId}</if>
+            <if test="params.doctorId != null and params.doctorId != ''">
+                AND ha.user_id IN (SELECT patient_id FROM sys_doctor_patient WHERE doctor_id = #{params.doctorId})
+            </if>
+            <if test="patientName != null  and patientName != ''"> and u.nick_name like concat('%', #{patientName}, '%')</if>
+            <if test="diseaseType != null  and diseaseType != ''"> and ha.disease_type = #{diseaseType}</if>
+            <if test="ageStage != null  and ageStage != ''"> and ha.age_stage = #{ageStage}</if>
+            <if test="riskLevel != null  and riskLevel != ''"> and ha.risk_level = #{riskLevel}</if>
+            <if test="archiveTags != null  and archiveTags != ''"> and ha.archive_tags like concat('%', #{archiveTags}, '%')</if>
+        </where>
+        order by ha.create_time desc, ha.archive_id desc
+    </select>
+    
+    <select id="selectHealthArchiveById" parameterType="Long" resultMap="HealthArchiveResult">
+        <include refid="selectHealthArchiveVo"/>
+        where ha.archive_id = #{archiveId}
+    </select>
+        
+    <insert id="insertHealthArchive" parameterType="HealthArchive" useGeneratedKeys="true" keyProperty="archiveId">
+        insert into health_archive
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="basicInfo != null">basic_info,</if>
+            <if test="medicalHistory != null">medical_history,</if>
+            <if test="allergyHistory != null">allergy_history,</if>
+            <if test="diseaseType != null">disease_type,</if>
+            <if test="ageStage != null">age_stage,</if>
+            <if test="riskLevel != null">risk_level,</if>
+            <if test="archiveTags != null">archive_tags,</if>
+            <if test="diagnosisRecord != null">diagnosis_record,</if>
+            <if test="examReport != null">exam_report,</if>
+            <if test="trainingPlan != null">training_plan,</if>
+            <if test="medicationAdvice != null">medication_advice,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="basicInfo != null">#{basicInfo},</if>
+            <if test="medicalHistory != null">#{medicalHistory},</if>
+            <if test="allergyHistory != null">#{allergyHistory},</if>
+            <if test="diseaseType != null">#{diseaseType},</if>
+            <if test="ageStage != null">#{ageStage},</if>
+            <if test="riskLevel != null">#{riskLevel},</if>
+            <if test="archiveTags != null">#{archiveTags},</if>
+            <if test="diagnosisRecord != null">#{diagnosisRecord},</if>
+            <if test="examReport != null">#{examReport},</if>
+            <if test="trainingPlan != null">#{trainingPlan},</if>
+            <if test="medicationAdvice != null">#{medicationAdvice},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateHealthArchive" parameterType="HealthArchive">
+        update health_archive
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="basicInfo != null">basic_info = #{basicInfo},</if>
+            <if test="medicalHistory != null">medical_history = #{medicalHistory},</if>
+            <if test="allergyHistory != null">allergy_history = #{allergyHistory},</if>
+            <if test="diseaseType != null">disease_type = #{diseaseType},</if>
+            <if test="ageStage != null">age_stage = #{ageStage},</if>
+            <if test="riskLevel != null">risk_level = #{riskLevel},</if>
+            <if test="archiveTags != null">archive_tags = #{archiveTags},</if>
+            <if test="diagnosisRecord != null">diagnosis_record = #{diagnosisRecord},</if>
+            <if test="examReport != null">exam_report = #{examReport},</if>
+            <if test="trainingPlan != null">training_plan = #{trainingPlan},</if>
+            <if test="medicationAdvice != null">medication_advice = #{medicationAdvice},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where archive_id = #{archiveId}
+    </update>
+
+    <delete id="deleteHealthArchiveById" parameterType="Long">
+        delete from health_archive where archive_id = #{archiveId}
+    </delete>
+
+    <delete id="deleteHealthArchiveByIds" parameterType="String">
+        delete from health_archive where archive_id in 
+        <foreach item="archiveId" collection="array" open="(" separator="," close=")">
+            #{archiveId}
+        </foreach>
+    </delete>
+</mapper>

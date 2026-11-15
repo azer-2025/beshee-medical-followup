@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.FollowupRecordMapper">
+
+    <resultMap type="FollowupRecord" id="FollowupRecordResult">
+        <id     property="recordId"         column="record_id"          />
+        <result property="planId"           column="plan_id"            />
+        <result property="patientId"        column="patient_id"         />
+        <result property="doctorId"         column="doctor_id"          />
+        <result property="feedback"         column="feedback"           />
+        <result property="doctorAdvice"     column="doctor_advice"      />
+        <result property="medicationResult" column="medication_result"  />
+        <result property="rehabPhoto"       column="rehab_photo"        />
+        <result property="reminderCount"    column="reminder_count"     />
+        <result property="lastReminderTime" column="last_reminder_time" />
+        <result property="recordDate"       column="record_date"        />
+        <result property="status"           column="status"             />
+        <result property="createTime"       column="create_time"        />
+        <result property="updateTime"       column="update_time"        />
+        <result property="doctorName"       column="doctor_name"        />
+        <result property="patientName"      column="patient_name"       />
+        <result property="planTitle"        column="plan_title"         />
+        <result property="moduleType"       column="module_type"        />
+        <result property="requireFeedback"  column="require_feedback"   />
+        <result property="requirePhoto"     column="require_photo"      />
+    </resultMap>
+
+    <sql id="selectFollowupRecordVo">
+        select fr.record_id, fr.plan_id, fr.patient_id, fr.doctor_id, fr.feedback, fr.doctor_advice,
+        fr.medication_result, fr.rehab_photo, fr.reminder_count, fr.last_reminder_time,
+        fr.record_date, fr.status, fr.create_time, fr.update_time,
+        u1.nick_name as doctor_name, u2.nick_name as patient_name, fp.plan_title, fp.module_type,
+        fp.require_feedback, fp.require_photo
+        from followup_record fr
+        left join sys_user u1 on fr.doctor_id = u1.user_id
+        left join sys_user u2 on fr.patient_id = u2.user_id
+        left join followup_plan fp on fr.plan_id = fp.plan_id
+    </sql>
+
+    <select id="selectFollowupRecordList" parameterType="FollowupRecord" resultMap="FollowupRecordResult">
+        <include refid="selectFollowupRecordVo"/>
+        <where>
+            <if test="planId != null">and fr.plan_id = #{planId}</if>
+            <if test="patientId != null">and fr.patient_id = #{patientId}</if>
+            <if test="doctorId != null">and fr.doctor_id = #{doctorId}</if>
+            <if test="status != null and status != ''">and fr.status = #{status}</if>
+            <if test="doctorName != null and doctorName != ''">and u1.nick_name like concat('%', #{doctorName}, '%')</if>
+            <if test="patientName != null and patientName != ''">and u2.nick_name like concat('%', #{patientName}, '%')</if>
+        </where>
+        order by fr.record_date desc, fr.record_id desc
+    </select>
+
+    <select id="selectFollowupRecordById" parameterType="Long" resultMap="FollowupRecordResult">
+        <include refid="selectFollowupRecordVo"/>
+        where fr.record_id = #{recordId}
+    </select>
+
+    <select id="selectFollowupRecordByPlanAndDate" resultMap="FollowupRecordResult">
+        <include refid="selectFollowupRecordVo"/>
+        where fr.plan_id = #{planId}
+          and date(fr.record_date) = date(#{recordDate})
+        limit 1
+    </select>
+
+    <select id="selectOverdueMedicationReminderRecords" resultMap="FollowupRecordResult">
+        <include refid="selectFollowupRecordVo"/>
+        where fp.module_type = 'medication'
+          and fr.status != '2'
+          and (fr.medication_result is null or fr.medication_result = '')
+          and coalesce(fr.reminder_count, 0) &lt; #{maxReminderCount}
+          and timestampdiff(minute, coalesce(fr.last_reminder_time, fr.create_time), now()) &gt;= #{remindIntervalMinutes}
+        order by fr.record_date asc, fr.record_id asc
+    </select>
+
+    <insert id="insertFollowupRecord" parameterType="FollowupRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into followup_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="planId != null">plan_id,</if>
+            <if test="patientId != null">patient_id,</if>
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="feedback != null">feedback,</if>
+            <if test="doctorAdvice != null">doctor_advice,</if>
+            <if test="medicationResult != null">medication_result,</if>
+            <if test="rehabPhoto != null">rehab_photo,</if>
+            <if test="reminderCount != null">reminder_count,</if>
+            <if test="lastReminderTime != null">last_reminder_time,</if>
+            <if test="recordDate != null">record_date,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="planId != null">#{planId},</if>
+            <if test="patientId != null">#{patientId},</if>
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="feedback != null">#{feedback},</if>
+            <if test="doctorAdvice != null">#{doctorAdvice},</if>
+            <if test="medicationResult != null">#{medicationResult},</if>
+            <if test="rehabPhoto != null">#{rehabPhoto},</if>
+            <if test="reminderCount != null">#{reminderCount},</if>
+            <if test="lastReminderTime != null">#{lastReminderTime},</if>
+            <if test="recordDate != null">#{recordDate},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateFollowupRecord" parameterType="FollowupRecord">
+        update followup_record
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="planId != null">plan_id = #{planId},</if>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="feedback != null">feedback = #{feedback},</if>
+            <if test="doctorAdvice != null">doctor_advice = #{doctorAdvice},</if>
+            <if test="medicationResult != null">medication_result = #{medicationResult},</if>
+            <if test="rehabPhoto != null">rehab_photo = #{rehabPhoto},</if>
+            <if test="reminderCount != null">reminder_count = #{reminderCount},</if>
+            <if test="lastReminderTime != null">last_reminder_time = #{lastReminderTime},</if>
+            <if test="recordDate != null">record_date = #{recordDate},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where record_id = #{recordId}
+    </update>
+
+    <update id="updateMedicationReminderState">
+        update followup_record
+        set reminder_count = #{reminderCount},
+            last_reminder_time = #{lastReminderTime},
+            update_time = now()
+        where record_id = #{recordId}
+    </update>
+
+    <delete id="deleteFollowupRecordById" parameterType="Long">
+        delete from followup_record where record_id = #{recordId}
+    </delete>
+
+    <delete id="deleteFollowupRecordByIds" parameterType="String">
+        delete from followup_record where record_id in
+        <foreach item="recordId" collection="array" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </delete>
+</mapper>

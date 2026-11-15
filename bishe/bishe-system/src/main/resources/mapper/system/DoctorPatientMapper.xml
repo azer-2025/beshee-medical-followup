@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.DoctorPatientMapper">
+    
+    <resultMap type="com.bishe.common.core.domain.entity.SysUser" id="SysUserResult">
+        <id     property="userId"       column="user_id"      />
+        <result property="deptId"       column="dept_id"      />
+        <result property="userName"     column="user_name"    />
+        <result property="nickName"     column="nick_name"    />
+        <result property="email"        column="email"        />
+        <result property="phonenumber"  column="phonenumber"  />
+        <result property="sex"          column="sex"          />
+        <result property="avatar"       column="avatar"       />
+        <result property="status"       column="status"       />
+        <result property="delFlag"      column="del_flag"     />
+        <result property="createBy"     column="create_by"    />
+        <result property="createTime"   column="create_time"  />
+        <result property="remark"       column="remark"       />
+        <result property="params.associationTime" column="association_time" />
+        <result property="params.doctorName" column="doctor_name" />
+        <result property="params.doctorId" column="doctor_id" />
+    </resultMap>
+
+    <select id="selectPatientListByDoctorId" parameterType="SysUser" resultMap="SysUserResult">
+        select u.user_id, u.user_name, u.nick_name, u.email, u.phonenumber, u.sex, u.avatar, u.status, u.create_time,
+               dp.create_time as association_time,
+               d.nick_name as doctor_name,
+               d.user_id as doctor_id
+        from sys_user u
+        inner join sys_doctor_patient dp on u.user_id = dp.patient_id
+        left join sys_user d on dp.doctor_id = d.user_id
+        <where>
+            <if test="params.doctorId != null">
+                and dp.doctor_id = #{params.doctorId}
+            </if>
+            <if test="userName != null and userName != ''">
+                and u.user_name like concat('%', #{userName}, '%')
+            </if>
+            <if test="nickName != null and nickName != ''">
+                and u.nick_name like concat('%', #{nickName}, '%')
+            </if>
+            <if test="phonenumber != null and phonenumber != ''">
+                and u.phonenumber like concat('%', #{phonenumber}, '%')
+            </if>
+            <if test="params.doctorName != null and params.doctorName != ''">
+                and d.nick_name like concat('%', #{params.doctorName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectUnboundPatientList" parameterType="Long" resultMap="SysUserResult">
+        select distinct u.user_id, u.user_name, u.nick_name, u.email, u.phonenumber, u.sex, u.status, u.create_time
+        from sys_user u
+        where u.del_flag = '0'
+        and u.user_id not in (
+            select ur.user_id from sys_user_role ur
+            inner join sys_role r on ur.role_id = r.role_id
+            where r.role_key in ('admin', 'doctor', 'common')
+        )
+        and u.user_id not in (select patient_id from sys_doctor_patient where doctor_id = #{doctorId})
+    </select>
+        
+    <insert id="insertDoctorPatient" parameterType="DoctorPatient">
+        insert into sys_doctor_patient(doctor_id, patient_id, create_time)
+        values(#{doctorId}, #{patientId}, sysdate())
+    </insert>
+
+    <delete id="deleteDoctorPatient" parameterType="DoctorPatient">
+        delete from sys_doctor_patient where doctor_id = #{doctorId} and patient_id = #{patientId}
+    </delete>
+
+    <select id="selectDoctorByPatientId" parameterType="Long" resultMap="SysUserResult">
+        select u.user_id, u.user_name, u.nick_name, u.email, u.phonenumber, u.sex, u.avatar, u.status, u.create_time, u.remark,
+               dp.create_time as association_time
+        from sys_user u
+        inner join sys_doctor_patient dp on u.user_id = dp.doctor_id
+        where dp.patient_id = #{patientId}
+    </select>
+
+</mapper>

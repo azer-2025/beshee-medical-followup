@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.HealthDataMapper">
+
+    <resultMap type="HealthData" id="HealthDataResult">
+        <id     property="dataId"           column="data_id"            />
+        <result property="userId"           column="user_id"            />
+        <result property="height"           column="height"             />
+        <result property="weight"           column="weight"             />
+        <result property="temperature"      column="temperature"        />
+        <result property="bloodPressureSys" column="blood_pressure_sys" />
+        <result property="bloodPressureDia" column="blood_pressure_dia" />
+        <result property="heartRate"        column="heart_rate"         />
+        <result property="bloodSugar"       column="blood_sugar"        />
+        <result property="reportImage"      column="report_image"       />
+        <result property="rehabPhoto"       column="rehab_photo"        />
+        <result property="measureTime"      column="measure_time"       />
+        <result property="createTime"       column="create_time"        />
+        <result property="remark"           column="remark"             />
+        <result property="patientName"      column="patient_name"       />
+    </resultMap>
+
+    <sql id="selectHealthDataVo">
+        select hd.data_id, hd.user_id, hd.height, hd.weight, hd.temperature, hd.blood_pressure_sys, hd.blood_pressure_dia,
+        hd.heart_rate, hd.blood_sugar, hd.report_image, hd.rehab_photo, hd.measure_time, hd.create_time,
+        hd.remark, u.nick_name as patient_name
+        from health_data hd
+        left join sys_user u on hd.user_id = u.user_id
+    </sql>
+
+    <select id="selectHealthDataList" parameterType="HealthData" resultMap="HealthDataResult">
+        <include refid="selectHealthDataVo"/>
+        <where>
+            <if test="userId != null">and hd.user_id = #{userId}</if>
+            <if test="params.doctorId != null and params.doctorId != ''">
+                and hd.user_id in (select patient_id from sys_doctor_patient where doctor_id = #{params.doctorId})
+            </if>
+            <if test="patientName != null and patientName != ''">and u.nick_name like concat('%', #{patientName}, '%')</if>
+            <if test="measureTime != null">and date(hd.measure_time) = date(#{measureTime})</if>
+        </where>
+    </select>
+
+    <select id="selectHealthDataById" parameterType="Long" resultMap="HealthDataResult">
+        <include refid="selectHealthDataVo"/>
+        where hd.data_id = #{dataId}
+    </select>
+
+    <insert id="insertHealthData" parameterType="HealthData" useGeneratedKeys="true" keyProperty="dataId">
+        insert into health_data
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="height != null">height,</if>
+            <if test="weight != null">weight,</if>
+            <if test="temperature != null">temperature,</if>
+            <if test="bloodPressureSys != null">blood_pressure_sys,</if>
+            <if test="bloodPressureDia != null">blood_pressure_dia,</if>
+            <if test="heartRate != null">heart_rate,</if>
+            <if test="bloodSugar != null">blood_sugar,</if>
+            <if test="reportImage != null">report_image,</if>
+            <if test="rehabPhoto != null">rehab_photo,</if>
+            <if test="measureTime != null">measure_time,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="height != null">#{height},</if>
+            <if test="weight != null">#{weight},</if>
+            <if test="temperature != null">#{temperature},</if>
+            <if test="bloodPressureSys != null">#{bloodPressureSys},</if>
+            <if test="bloodPressureDia != null">#{bloodPressureDia},</if>
+            <if test="heartRate != null">#{heartRate},</if>
+            <if test="bloodSugar != null">#{bloodSugar},</if>
+            <if test="reportImage != null">#{reportImage},</if>
+            <if test="rehabPhoto != null">#{rehabPhoto},</if>
+            <if test="measureTime != null">#{measureTime},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <update id="updateHealthData" parameterType="HealthData">
+        update health_data
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="height != null">height = #{height},</if>
+            <if test="weight != null">weight = #{weight},</if>
+            <if test="temperature != null">temperature = #{temperature},</if>
+            <if test="bloodPressureSys != null">blood_pressure_sys = #{bloodPressureSys},</if>
+            <if test="bloodPressureDia != null">blood_pressure_dia = #{bloodPressureDia},</if>
+            <if test="heartRate != null">heart_rate = #{heartRate},</if>
+            <if test="bloodSugar != null">blood_sugar = #{bloodSugar},</if>
+            <if test="reportImage != null">report_image = #{reportImage},</if>
+            <if test="rehabPhoto != null">rehab_photo = #{rehabPhoto},</if>
+            <if test="measureTime != null">measure_time = #{measureTime},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where data_id = #{dataId}
+    </update>
+
+    <delete id="deleteHealthDataById" parameterType="Long">
+        delete from health_data where data_id = #{dataId}
+    </delete>
+
+    <delete id="deleteHealthDataByIds" parameterType="String">
+        delete from health_data where data_id in
+        <foreach item="dataId" collection="array" open="(" separator="," close=")">
+            #{dataId}
+        </foreach>
+    </delete>
+</mapper>

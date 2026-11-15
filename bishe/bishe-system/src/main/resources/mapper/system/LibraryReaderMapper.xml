@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.LibraryReaderMapper">
+
+    <resultMap type="LibraryReader" id="LibraryReaderResult">
+        <id property="readerId" column="reader_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="readerNo" column="reader_no"/>
+        <result property="cardNo" column="card_no"/>
+        <result property="idCard" column="id_card"/>
+        <result property="borrowLimit" column="borrow_limit"/>
+        <result property="totalBorrowCount" column="total_borrow_count"/>
+        <result property="currentBorrowCount" column="current_borrow_count"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <result property="userName" column="user_name"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="phonenumber" column="phonenumber"/>
+        <result property="email" column="email"/>
+        <result property="sex" column="sex"/>
+        <result property="avatar" column="avatar"/>
+    </resultMap>
+
+    <sql id="selectLibraryReaderVo">
+        select lr.reader_id, lr.user_id, lr.reader_no, lr.card_no, lr.id_card, lr.borrow_limit,
+               lr.total_borrow_count, lr.current_borrow_count, lr.status, lr.create_by, lr.create_time,
+               lr.update_by, lr.update_time, lr.remark, u.user_name, u.nick_name, u.phonenumber,
+               u.email, u.sex, u.avatar
+        from lib_reader lr
+        left join sys_user u on lr.user_id = u.user_id
+    </sql>
+
+    <select id="selectLibraryReaderList" parameterType="LibraryReader" resultMap="LibraryReaderResult">
+        <include refid="selectLibraryReaderVo"/>
+        <where>
+            u.del_flag = '0'
+            <if test="readerNo != null and readerNo != ''">and lr.reader_no like concat('%', #{readerNo}, '%')</if>
+            <if test="cardNo != null and cardNo != ''">and lr.card_no like concat('%', #{cardNo}, '%')</if>
+            <if test="userName != null and userName != ''">and u.user_name like concat('%', #{userName}, '%')</if>
+            <if test="nickName != null and nickName != ''">and u.nick_name like concat('%', #{nickName}, '%')</if>
+            <if test="phonenumber != null and phonenumber != ''">and u.phonenumber like concat('%', #{phonenumber}, '%')</if>
+            <if test="status != null and status != ''">and lr.status = #{status}</if>
+        </where>
+        order by lr.reader_id desc
+    </select>
+
+    <select id="selectLibraryReaderById" parameterType="Long" resultMap="LibraryReaderResult">
+        <include refid="selectLibraryReaderVo"/>
+        where lr.reader_id = #{readerId}
+    </select>
+
+    <select id="selectLibraryReaderByUserId" parameterType="Long" resultMap="LibraryReaderResult">
+        <include refid="selectLibraryReaderVo"/>
+        where lr.user_id = #{userId} and u.del_flag = '0'
+    </select>
+
+    <select id="selectLibraryReaderByReaderNo" parameterType="String" resultMap="LibraryReaderResult">
+        <include refid="selectLibraryReaderVo"/>
+        where lr.reader_no = #{readerNo} and u.del_flag = '0'
+        limit 1
+    </select>
+
+    <insert id="insertLibraryReader" parameterType="LibraryReader" useGeneratedKeys="true" keyProperty="readerId">
+        insert into lib_reader (
+            user_id, reader_no, card_no, id_card, borrow_limit, total_borrow_count,
+            current_borrow_count, status, create_by, create_time, remark
+        ) values (
+            #{userId}, #{readerNo}, #{cardNo}, #{idCard}, #{borrowLimit}, 0,
+            0, #{status}, #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateLibraryReader" parameterType="LibraryReader">
+        update lib_reader
+        <set>
+            <if test="readerNo != null and readerNo != ''">reader_no = #{readerNo},</if>
+            <if test="cardNo != null">card_no = #{cardNo},</if>
+            <if test="idCard != null">id_card = #{idCard},</if>
+            <if test="borrowLimit != null">borrow_limit = #{borrowLimit},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </set>
+        where reader_id = #{readerId}
+    </update>
+
+    <update id="updateLibraryReaderStatusByUserId" parameterType="LibraryReader">
+        update lib_reader
+        <set>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where user_id = #{userId}
+    </update>
+
+    <delete id="deleteLibraryReaderByIds" parameterType="Long">
+        delete from lib_reader
+        where reader_id in
+        <foreach collection="array" item="readerId" open="(" separator="," close=")">
+            #{readerId}
+        </foreach>
+    </delete>
+
+    <update id="increaseBorrowStats" parameterType="Long">
+        update lib_reader
+        set total_borrow_count = ifnull(total_borrow_count, 0) + 1,
+            current_borrow_count = ifnull(current_borrow_count, 0) + 1
+        where reader_id = #{readerId}
+    </update>
+
+    <update id="decreaseCurrentBorrowCount" parameterType="Long">
+        update lib_reader
+        set current_borrow_count = if(current_borrow_count &gt; 0, current_borrow_count - 1, 0)
+        where reader_id = #{readerId}
+    </update>
+</mapper>

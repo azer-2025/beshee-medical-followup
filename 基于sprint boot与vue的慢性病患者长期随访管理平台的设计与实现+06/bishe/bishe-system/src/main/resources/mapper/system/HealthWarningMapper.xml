@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.HealthWarningMapper">
+    
+    <resultMap type="HealthWarning" id="HealthWarningResult">
+        <id     property="warningId"    column="warning_id"    />
+        <result property="userId"       column="user_id"       />
+        <result property="warningType"  column="warning_type"  />
+        <result property="warningValue" column="warning_value" />
+        <result property="warningLevel" column="warning_level" />
+        <result property="warningMsg"   column="warning_msg"   />
+        <result property="isRead"       column="is_read"       />
+        <result property="createTime"   column="create_time"   />
+        <result property="patientName"  column="patient_name"  />
+    </resultMap>
+
+    <sql id="selectHealthWarningVo">
+        select hw.warning_id, hw.user_id, hw.warning_type, hw.warning_value, hw.warning_level, hw.warning_msg, hw.is_read, hw.create_time, u.nick_name as patient_name
+        from health_warning hw
+        left join sys_user u on hw.user_id = u.user_id
+    </sql>
+
+    <select id="selectHealthWarningList" parameterType="HealthWarning" resultMap="HealthWarningResult">
+        <include refid="selectHealthWarningVo"/>
+        <where>  
+            <if test="userId != null "> and hw.user_id = #{userId}</if>
+            <if test="params.doctorId != null and params.doctorId != ''">
+                AND hw.user_id IN (SELECT patient_id FROM sys_doctor_patient WHERE doctor_id = #{params.doctorId})
+            </if>
+            <if test="warningType != null  and warningType != ''"> and hw.warning_type = #{warningType}</if>
+            <if test="warningLevel != null  and warningLevel != ''"> and hw.warning_level = #{warningLevel}</if>
+            <if test="isRead != null  and isRead != ''"> and hw.is_read = #{isRead}</if>
+            <if test="patientName != null  and patientName != ''"> and u.nick_name like concat('%', #{patientName}, '%')</if>
+        </where>
+    </select>
+    
+    <select id="selectHealthWarningById" parameterType="Long" resultMap="HealthWarningResult">
+        <include refid="selectHealthWarningVo"/>
+        where hw.warning_id = #{warningId}
+    </select>
+        
+    <insert id="insertHealthWarning" parameterType="HealthWarning" useGeneratedKeys="true" keyProperty="warningId">
+        insert into health_warning
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="warningType != null and warningType != ''">warning_type,</if>
+            <if test="warningValue != null and warningValue != ''">warning_value,</if>
+            <if test="warningLevel != null">warning_level,</if>
+            <if test="warningMsg != null">warning_msg,</if>
+            <if test="isRead != null">is_read,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="warningType != null and warningType != ''">#{warningType},</if>
+            <if test="warningValue != null and warningValue != ''">#{warningValue},</if>
+            <if test="warningLevel != null">#{warningLevel},</if>
+            <if test="warningMsg != null">#{warningMsg},</if>
+            <if test="isRead != null">#{isRead},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateHealthWarning" parameterType="HealthWarning">
+        update health_warning
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="warningType != null and warningType != ''">warning_type = #{warningType},</if>
+            <if test="warningValue != null and warningValue != ''">warning_value = #{warningValue},</if>
+            <if test="warningLevel != null">warning_level = #{warningLevel},</if>
+            <if test="warningMsg != null">warning_msg = #{warningMsg},</if>
+            <if test="isRead != null">is_read = #{isRead},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where warning_id = #{warningId}
+    </update>
+
+    <delete id="deleteHealthWarningById" parameterType="Long">
+        delete from health_warning where warning_id = #{warningId}
+    </delete>
+
+    <delete id="deleteHealthWarningByIds" parameterType="String">
+        delete from health_warning where warning_id in 
+        <foreach item="warningId" collection="array" open="(" separator="," close=")">
+            #{warningId}
+        </foreach>
+    </delete>
+</mapper>

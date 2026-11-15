@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bishe.system.mapper.FollowupPlanMapper">
+    
+    <resultMap type="FollowupPlan" id="FollowupPlanResult">
+        <id     property="planId"       column="plan_id"      />
+        <result property="doctorId"     column="doctor_id"    />
+        <result property="patientId"    column="patient_id"   />
+        <result property="planTitle"    column="plan_title"   />
+        <result property="planContent"  column="plan_content" />
+        <result property="startDate"    column="start_date"   />
+        <result property="endDate"      column="end_date"     />
+        <result property="frequency"    column="frequency"    />
+        <result property="status"       column="status"       />
+        <result property="moduleType"   column="module_type"  />
+        <result property="targetGroup"  column="target_group" />
+        <result property="cronExpression" column="cron_expression" />
+        <result property="reminderDescription" column="reminder_description" />
+        <result property="notifyChannel" column="notify_channel" />
+        <result property="requireFeedback" column="require_feedback" />
+        <result property="requirePhoto" column="require_photo" />
+        <result property="createBy"     column="create_by"    />
+        <result property="createTime"   column="create_time"  />
+        <result property="doctorName"   column="doctor_name"  />
+        <result property="patientName"  column="patient_name" />
+    </resultMap>
+
+    <sql id="selectFollowupPlanVo">
+        select fp.plan_id, fp.doctor_id, fp.patient_id, fp.plan_title, fp.module_type, fp.target_group,
+        fp.cron_expression, fp.reminder_description, fp.notify_channel, fp.require_feedback, fp.require_photo,
+        fp.plan_content, fp.start_date, fp.end_date, fp.frequency, fp.status, fp.create_by, fp.create_time,
+        u1.nick_name as doctor_name, u2.nick_name as patient_name
+        from followup_plan fp
+        left join sys_user u1 on fp.doctor_id = u1.user_id
+        left join sys_user u2 on fp.patient_id = u2.user_id
+    </sql>
+
+    <select id="selectFollowupPlanList" parameterType="FollowupPlan" resultMap="FollowupPlanResult">
+        <include refid="selectFollowupPlanVo"/>
+        <where>  
+            <if test="doctorId != null "> and fp.doctor_id = #{doctorId}</if>
+            <if test="patientId != null "> and fp.patient_id = #{patientId}</if>
+            <if test="planTitle != null  and planTitle != ''"> and fp.plan_title like concat('%', #{planTitle}, '%')</if>
+            <if test="status != null  and status != ''"> and fp.status = #{status}</if>
+            <if test="moduleType != null and moduleType != ''"> and fp.module_type = #{moduleType}</if>
+            <if test="doctorName != null  and doctorName != ''"> and u1.nick_name like concat('%', #{doctorName}, '%')</if>
+            <if test="patientName != null  and patientName != ''"> and u2.nick_name like concat('%', #{patientName}, '%')</if>
+        </where>
+    </select>
+    
+    <select id="selectFollowupPlanById" parameterType="Long" resultMap="FollowupPlanResult">
+        <include refid="selectFollowupPlanVo"/>
+        where fp.plan_id = #{planId}
+    </select>
+        
+    <insert id="insertFollowupPlan" parameterType="FollowupPlan" useGeneratedKeys="true" keyProperty="planId">
+        insert into followup_plan
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="doctorId != null">doctor_id,</if>
+            <if test="patientId != null">patient_id,</if>
+            <if test="planTitle != null and planTitle != ''">plan_title,</if>
+            <if test="planContent != null">plan_content,</if>
+            <if test="startDate != null">start_date,</if>
+            <if test="endDate != null">end_date,</if>
+            <if test="frequency != null">frequency,</if>
+            <if test="status != null">status,</if>
+            <if test="moduleType != null">module_type,</if>
+            <if test="targetGroup != null">target_group,</if>
+            <if test="cronExpression != null">cron_expression,</if>
+            <if test="reminderDescription != null">reminder_description,</if>
+            <if test="notifyChannel != null">notify_channel,</if>
+            <if test="requireFeedback != null">require_feedback,</if>
+            <if test="requirePhoto != null">require_photo,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="doctorId != null">#{doctorId},</if>
+            <if test="patientId != null">#{patientId},</if>
+            <if test="planTitle != null and planTitle != ''">#{planTitle},</if>
+            <if test="planContent != null">#{planContent},</if>
+            <if test="startDate != null">#{startDate},</if>
+            <if test="endDate != null">#{endDate},</if>
+            <if test="frequency != null">#{frequency},</if>
+            <if test="status != null">#{status},</if>
+            <if test="moduleType != null">#{moduleType},</if>
+            <if test="targetGroup != null">#{targetGroup},</if>
+            <if test="cronExpression != null">#{cronExpression},</if>
+            <if test="reminderDescription != null">#{reminderDescription},</if>
+            <if test="notifyChannel != null">#{notifyChannel},</if>
+            <if test="requireFeedback != null">#{requireFeedback},</if>
+            <if test="requirePhoto != null">#{requirePhoto},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateFollowupPlan" parameterType="FollowupPlan">
+        update followup_plan
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="doctorId != null">doctor_id = #{doctorId},</if>
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="planTitle != null and planTitle != ''">plan_title = #{planTitle},</if>
+            <if test="planContent != null">plan_content = #{planContent},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate},</if>
+            <if test="frequency != null">frequency = #{frequency},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="moduleType != null">module_type = #{moduleType},</if>
+            <if test="targetGroup != null">target_group = #{targetGroup},</if>
+            <if test="cronExpression != null">cron_expression = #{cronExpression},</if>
+            <if test="reminderDescription != null">reminder_description = #{reminderDescription},</if>
+            <if test="notifyChannel != null">notify_channel = #{notifyChannel},</if>
+            <if test="requireFeedback != null">require_feedback = #{requireFeedback},</if>
+            <if test="requirePhoto != null">require_photo = #{requirePhoto},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where plan_id = #{planId}
+    </update>
+
+    <delete id="deleteFollowupPlanById" parameterType="Long">
+        delete from followup_plan where plan_id = #{planId}
+    </delete>
+
+    <delete id="deleteFollowupPlanByIds" parameterType="String">
+        delete from followup_plan where plan_id in 
+        <foreach item="planId" collection="array" open="(" separator="," close=")">
+            #{planId}
+        </foreach>
+    </delete>
+
+    <update id="updateOverduePlansToCompleted">
+        update followup_plan
+        set status = '1'
+        where end_date &lt; date_format(sysdate(), '%Y-%m-%d')
+        and status = '0'
+    </update>
+</mapper>
